@@ -27,6 +27,12 @@ The final model with ByteTrack on a short clip that was not used for training or
 
 The footage is from one of my own matches, and I appear in the clip. I play handball professionally, so I know which errors matter on the court.
 
+More clips from my match footage, run with the same settings. The left clip is handheld, with fast panning and motion blur, which is a hard case for a small ball. Detection of people is good, but ball detection and ID stability are not yet reliable. This is an ongoing project and I am continuing to improve it.
+
+| Handheld camera, fast panning | Wide view with many players |
+|---|---|
+| ![demo 2](images/demo_2.gif) | ![demo 4](images/demo_4.gif) |
+
 ![demo](images/demo.gif)
 
 ## Results (held-out test set, evaluated once)

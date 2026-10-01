@@ -22,10 +22,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--video", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True, help="Output .gif path.")
     parser.add_argument("--start", type=float, default=0.0, help="Start time in seconds.")
-    parser.add_argument("--seconds", type=float, default=6.0, help="Length of the segment.")
+    parser.add_argument("--seconds", type=float, default=None, help="Length of the segment (default: until the end of the video).")
     parser.add_argument("--gif-fps", type=int, default=10)
     parser.add_argument("--width", type=int, default=640, help="Output width in pixels.")
-    parser.add_argument("--conf", type=float, default=0.25)
+    parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold for people.")
+    parser.add_argument("--ball-conf", type=float, default=None, help="Confidence threshold for the ball (default: same as --conf).")
     parser.add_argument("--imgsz", type=int, default=1280)
     return parser.parse_args()
 
@@ -53,23 +54,29 @@ def main() -> None:
     if not capture.isOpened():
         raise RuntimeError(f"Could not open video: {args.video}")
     fps = capture.get(cv2.CAP_PROP_FPS) or 25.0
-    capture.set(cv2.CAP_PROP_POS_FRAMES, int(args.start * fps))
-    total = int(args.seconds * fps)
+    start_frame = int(args.start * fps)
+    capture.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    if args.seconds is None:
+        total = int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) - start_frame
+    else:
+        total = int(args.seconds * fps)
     step = max(1, round(fps / args.gif_fps))
 
     model = YOLO(str(args.weights))
+    ball_conf = args.ball_conf if args.ball_conf is not None else args.conf
     frames = []
     for index in range(total):
         ok, frame = capture.read()
         if not ok:
             break
         # Every frame goes through the tracker so IDs stay stable; only some are kept for the GIF.
-        result = model.track(frame, persist=True, tracker="bytetrack.yaml", conf=args.conf, imgsz=args.imgsz, verbose=False)[0]
+        result = model.track(frame, persist=True, tracker="bytetrack.yaml", conf=min(args.conf, ball_conf), imgsz=args.imgsz, verbose=False)[0]
         if index % step:
             continue
         boxes = result.boxes
         ids = boxes.id.int().tolist() if boxes.id is not None else [None] * len(boxes)
         items = list(zip(boxes.xyxy.tolist(), boxes.cls.int().tolist(), boxes.conf.tolist(), ids))
+        items = [item for item in items if item[2] >= (ball_conf if item[1] == 3 else args.conf)]
         scale = args.width / frame.shape[1]
         small = cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         items = [([v * scale for v in box], cls, conf, track_id) for box, cls, conf, track_id in items]
@@ -81,7 +88,7 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     palette = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT) for f in frames]
-    palette[0].save(args.output, save_all=True, append_images=palette[1:], duration=int(1000 / args.gif_fps), loop=0, optimize=True)
+    palette[0].save(args.output, save_all=True, append_images=palette[1:], duration=int(1000 * step / fps), loop=0, optimize=True)
     print(f"Saved {len(frames)} frames to {args.output} ({args.output.stat().st_size / 1e6:.1f} MB)")
 
 
