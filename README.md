@@ -22,6 +22,13 @@ Ball F1 rose from 0.00 to 0.26 on a held-out test set, which I evaluated once, a
 |---|---|
 | ![baseline](images/baseline_ball_missed.jpg) | ![final](images/final_ball_found.jpg) |
 
+## Demo: detection and tracking on unseen footage
+The final model with ByteTrack on a short clip that was not used for training or evaluation. Boxes show the class, and people also carry a track ID. This is a first tracking pass with default ByteTrack settings: the ball is found in some frames but not all, and IDs are not yet stable after occlusions. Improving this is part of the roadmap.
+
+The footage is from one of my own matches, and I appear in the clip. I play handball professionally, so I know which errors matter on the court.
+
+![demo](images/demo.gif)
+
 ## Results (held-out test set, evaluated once)
 Values are mAP50 / F1. YOLO11s, input size 1280.
 
@@ -45,6 +52,7 @@ Tracking on full matches, team assignment by jersey colour, camera-motion compen
 |---|---|
 | `tools/draw_predictions.py` | Draw clean predictions on a single image (used for the figures above) |
 | `src/infer_video.py` | Run detection and ByteTrack on a video and export an annotated video plus CSV logs |
+| `tools/make_demo_gif.py` | Run detection and tracking on a video segment and save a GIF (used for the demo above) |
 | `src/common.py` | Small shared helpers |
 
 Trained weights, datasets and the full training and evaluation pipeline are intentionally **not** included.
