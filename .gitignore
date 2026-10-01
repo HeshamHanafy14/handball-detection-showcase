@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.pt
+*.onnx
+*.engine
+runs/
+data/
